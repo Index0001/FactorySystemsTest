@@ -1,0 +1,11 @@
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\bin\Debug\net48\FactorySystemsTest.exe.config
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\bin\Debug\net48\FactorySystemsTest.exe
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\bin\Debug\net48\FactorySystemsTest.pdb
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\bin\Debug\net48\System.Data.SQLite.dll
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\obj\Debug\net48\FactorySystemsTest.csprojAssemblyReference.cache
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\obj\Debug\net48\FactorySystemsTest.csproj.CoreCompileInputs.cache
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\obj\Debug\net48\FactorySystemsTest.AssemblyInfoInputs.cache
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\obj\Debug\net48\FactorySystemsTest.AssemblyInfo.cs
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\obj\Debug\net48\FactorySystemsTest.csproj.CopyComplete
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\obj\Debug\net48\FactorySystemsTest.exe
+C:\Users\spage\OneDrive\Documents\C#\FactorySystemsTest\obj\Debug\net48\FactorySystemsTest.pdb
