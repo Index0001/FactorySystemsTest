@@ -18,7 +18,7 @@ namespace FactorySystemsTest
         {
             string DatabaseLoc;
             int limit;
-            Console.WriteLine("Please type the location of the database");
+            Console.WriteLine("Please type the location of the Database");
             DatabaseLoc = Console.ReadLine();
             Console.WriteLine("Please type the filter size. (Typing nothing will default to 3, Typing 0 will include all datapoints)");
             string limitInput = Console.ReadLine();
@@ -36,7 +36,7 @@ namespace FactorySystemsTest
             }
             SQLiteConnection con;
             StringBuilder csvcontent = new StringBuilder();
-            string csvpath = Directory.GetCurrentDirectory()+"/FactorySystemsTestSummary.csv";
+            string csvpath = System.IO.Path.GetDirectoryName(DatabaseLoc)+"/FactorySystemsTestSummary.csv";
             csvcontent.AppendLine("Factory Systems Test Summary");
             csvcontent.AppendLine("");
             
