@@ -7,10 +7,20 @@ using System.Data.SQLite;
 
 namespace FactorySystemsTest
 {
-    class Data { //A data type to hold the SQL data in a List
-        public double x {get;set;}
-        public double y {get;set;}
-        public double height {get;set;}
+    class Test
+    { //Holds Identifying information for Tests
+        public int test_uid { get; set; }
+        public DateTime sTime { get; set; }
+
+        public string PlaneID { get; set; }
+
+        public string Operator { get; set; }
+    }
+    class Data
+    { //A data type to hold the SQL data in a List
+        public double x { get; set; }
+        public double y { get; set; }
+        public double height { get; set; }
     }
     class Program
     {
@@ -22,51 +32,64 @@ namespace FactorySystemsTest
             DatabaseLoc = Console.ReadLine();
             Console.WriteLine("Please type the filter size. (Typing nothing will default to 3, Typing 0 will include all datapoints)");
             string limitInput = Console.ReadLine();
-            if (limitInput == "") {
+            if (limitInput == "")
+            {
                 limit = 3;
             }
-            else {
-                try {
+            else
+            {
+                try
+                {
                     limit = Convert.ToInt32(limitInput);
                 }
-                catch {
+                catch
+                {
                     Console.WriteLine("This is not a valid input. Defaulting to 3");
                     limit = 3;
                 }
             }
             SQLiteConnection con;
             StringBuilder csvcontent = new StringBuilder();
-            string csvpath = System.IO.Path.GetDirectoryName(DatabaseLoc)+"/FactorySystemsTestSummary.csv";
+            string csvpath = System.IO.Path.GetDirectoryName(DatabaseLoc) + "/FactorySystemsTestSummary.csv";
             csvcontent.AppendLine("Factory Systems Test Summary");
             csvcontent.AppendLine("");
-            
-            try {
-                con = new SQLiteConnection("Data Source="+DatabaseLoc);
+            csvcontent.AppendLine("Test UID, Start Time, PlaneID, Operator, Minimum Height, X Coordinate for Minimum Height, Y Coordinate for Minimum Height, Maximum Height, X Coordinate for Maximum Height, Y Coordinate for Maximum Height, Mean Height, Height Range, Average Roughness (RA), Root Mean Square Roughness (RQ), Count of Measurements inside filter input, Count of measurements outside filter input");
+            try
+            {
+                con = new SQLiteConnection("Data Source=" + DatabaseLoc);
                 con.Open();
-                string TestCount = "SELECT test_uid FROM Tests";
+                string TestCount = "SELECT test_uid, sTime, PlaneID, Operator FROM Tests";
 
-                List<int> Tests = new List<int>();
+                List<Test> Tests = new List<Test>();
                 List<Data> DataFull = new List<Data>();
                 List<Data> DataLimited = new List<Data>();
 
                 SQLiteCommand TestCountCommand = new SQLiteCommand(TestCount, con);
                 SQLiteDataReader reader = TestCountCommand.ExecuteReader();
-                while(reader.Read()) {
-                    int test = Convert.ToInt32(reader["test_uid"]);
-                    Tests.Add(test);
+                while (reader.Read())
+                {
+                    Test newTest = new Test();
+                    newTest.test_uid = Convert.ToInt32(reader["test_uid"]);
+                    newTest.sTime = Convert.ToDateTime(reader["sTime"]);
+                    newTest.PlaneID = Convert.ToString(reader["PlaneID"]);
+                    newTest.Operator = Convert.ToString(reader["Operator"]);
+                    Tests.Add(newTest);
                 }
+
                 //Limit calculations based on the Test UID
-                for (int i = 0; i < Tests.Count; i++) {
-                    string DataDB = "SELECT x, y, height FROM Measurements WHERE test_uid = "+(i+1);
+                for (int i = 0; i < Tests.Count; i++)
+                {
+                    string DataDB = "SELECT x, y, height FROM Measurements WHERE test_uid = " + (i + 1);
                     SQLiteCommand HeightCommand = new SQLiteCommand(DataDB, con);
                     SQLiteDataReader HeightReader = HeightCommand.ExecuteReader();
                     //Put SQL Data into a List to be used in calculations.
-                    while(HeightReader.Read()){
+                    while (HeightReader.Read())
+                    {
                         Data datapoint = new Data();
-                        datapoint.x = (double) HeightReader["x"];
-                        datapoint.y = (double) HeightReader["y"];
-                        datapoint.height = (double) HeightReader["height"];
-                        DataFull.Add(datapoint); 
+                        datapoint.x = (double)HeightReader["x"];
+                        datapoint.y = (double)HeightReader["y"];
+                        datapoint.height = (double)HeightReader["height"];
+                        DataFull.Add(datapoint);
                     }
 
                     double OriginalMeanHeight = 0;
@@ -76,119 +99,138 @@ namespace FactorySystemsTest
                     Data MaxHeight = new Data();
                     List<double> XCount = new List<double>();
                     List<double> YCount = new List<double>();
-                    double PSD = 0;
+                    double PopulationStandardDev = 0;
                     double MeanHeight = 0;
-                    double RA = new double();
-                    double RQ = new double();
+                    double HeightRange = 0;
+                    double RA = 0;
+                    double RQ = 0;
 
 
                     //Calculate Original Mean using all data for a particular Test UID
-                    for(int h = 0; h < DataFull.Count; h++) {
+                    for (int h = 0; h < DataFull.Count; h++)
+                    {
                         OriginalMeanHeight = OriginalMeanHeight + DataFull[h].height;
                     }
                     OriginalMeanHeight = OriginalMeanHeight / DataFull.Count;
-                
-               
+
+
                     //Calculate Population Standard Deviation
-                    for (int h = 0; h < DataFull.Count; h++) {
-                        PSD = PSD + Math.Pow(DataFull[h].height - OriginalMeanHeight,2);
+                    for (int h = 0; h < DataFull.Count; h++)
+                    {
+                        PopulationStandardDev = PopulationStandardDev + Math.Pow(DataFull[h].height - OriginalMeanHeight, 2);
                     }
-                    PSD = Math.Sqrt(PSD/DataFull.Count);
+                    PopulationStandardDev = Math.Sqrt(PopulationStandardDev / DataFull.Count);
                     //Applying Filter
-                    double LxPSD = PSD * limit;
+                    double LimitedPopulationStandardDev = PopulationStandardDev * limit;
 
                     //Removing Outliers
-                    for (int h = 0; h < DataFull.Count; h++) {
-                        if (LxPSD == 0) {
+                    for (int h = 0; h < DataFull.Count; h++)
+                    {
+                        if (LimitedPopulationStandardDev == 0)
+                        {
                             DataLimited.Add(DataFull[h]);
                             NonOutliers++;
                         }
-                        else if(!(DataFull[h].height < OriginalMeanHeight-LxPSD) && !(DataFull[h].height > OriginalMeanHeight + LxPSD) ) {
+                        else if (!(DataFull[h].height < OriginalMeanHeight - LimitedPopulationStandardDev) && !(DataFull[h].height > OriginalMeanHeight + LimitedPopulationStandardDev))
+                        {
                             DataLimited.Add(DataFull[h]);
                             NonOutliers++;
                         }
-                        else {
+                        else
+                        {
                             Outliers++;
                         }
                     }
 
-                    //Calculating Min, Max, and new Mean for the filtered Data
-                    for(int h = 0; h < DataLimited.Count; h++) {
-                        if(h == 0) {
+                    //Calculating Min, Max, Range, and new Mean for the filtered Data
+                    for (int h = 0; h < DataLimited.Count; h++)
+                    {
+                        if (h == 0)
+                        {
                             MinHeight = DataLimited[h];
                             MaxHeight = DataLimited[h];
                         }
-                        else {
-                            if(DataLimited[h].height < MinHeight.height) {
+                        else
+                        {
+                            if (DataLimited[h].height < MinHeight.height)
+                            {
                                 MinHeight = DataLimited[h];
                             }
-                            if(DataLimited[h].height > MaxHeight.height) {
+                            if (DataLimited[h].height > MaxHeight.height)
+                            {
                                 MaxHeight = DataLimited[h];
                             }
-                            if(!XCount.Contains(DataLimited[h].x)) {
+                            if (!XCount.Contains(DataLimited[h].x))
+                            {
                                 XCount.Add(DataLimited[h].x);
                             }
-                            if(!YCount.Contains(DataLimited[h].y)) {
+                            if (!YCount.Contains(DataLimited[h].y))
+                            {
                                 YCount.Add(DataLimited[h].y);
                             }
                         }
                         MeanHeight = MeanHeight + DataLimited[h].height;
                     }
                     MeanHeight = MeanHeight / DataLimited.Count;
+                    HeightRange = MaxHeight.height - MinHeight.height;
 
                     //Calculate Mu
                     double Mu = MeanHeight; //After running a full calculation, it turns out Mu is just the mean.
-               
+
                     //Calculate Average Roughness (RA)
-                    for (int k = 0; k < XCount.Count; k++){
-                        for(int l = 0; l < DataLimited.Count; l++) {
-                            if (DataLimited[l].x == XCount[k]) {
-                                RA = RA +  Math.Abs((DataLimited[l].height - Mu));
+                    for (int k = 0; k < XCount.Count; k++)
+                    {                     //Goes through each instance of X
+                        for (int l = 0; l < DataLimited.Count; l++)
+                        {            //Checks for each Y of a given X
+                            if (DataLimited[l].x == XCount[k])
+                            {
+                                RA = RA + Math.Abs((DataLimited[l].height - Mu));
                             }
                         }
                     }
-                    RA = RA / (XCount.Count * YCount.Count);
-               
+                    RA = RA / (DataLimited.Count);
+
                     //Calculate Root mean square Roughness (RQ)
-                    for (int k = 0; k < XCount.Count; k++){
-                        for(int l = 0; l < DataLimited.Count; l++) {
-                            if (DataLimited[l].x == XCount[k]) {
-                                RQ = RQ + Math.Pow((DataLimited[l].height - Mu),2);
+                    for (int k = 0; k < XCount.Count; k++)
+                    {
+                        for (int l = 0; l < DataLimited.Count; l++)
+                        {
+                            if (DataLimited[l].x == XCount[k])
+                            {
+                                RQ = RQ + Math.Pow((DataLimited[l].height - Mu), 2);
                             }
                         }
                     }
-                    RQ = Math.Sqrt(RQ / (XCount.Count * YCount.Count));
- 
+                    RQ = Math.Sqrt(RQ / (DataLimited.Count));
+
                     //Write to CSV File
-                    csvcontent.AppendLine("Summary for Test #"+(i+1));
-                    if(DataLimited.Count == 0) {
-                        csvcontent.AppendLine("No Available Data.");
-                        csvcontent.AppendLine("");
+
+                    if (DataLimited.Count == 0)
+                    {
+                        csvcontent.AppendLine(Tests[i].test_uid + "," + Tests[i].sTime + "," + Tests[i].PlaneID + "," + Tests[i].Operator + ", No Data, No Data, No Data, No Data, No Data, No Data, No Data, No Data, No Data, No Data, No Data, No Data");
                     }
-                    else {
-                        csvcontent.AppendLine("Minimum Height and Location: "+MinHeight.height+" mm at ("+MinHeight.x+", "+MinHeight.y+").");
-                        csvcontent.AppendLine("Maximum Height and Location: "+MaxHeight.height+" mm at ("+MaxHeight.x+", "+MaxHeight.y+").");
-                        csvcontent.AppendLine("Mean Height: "+MeanHeight+" mm.");
-                        csvcontent.AppendLine("Height Range: "+MinHeight.height+" mm - "+MaxHeight.height+" mm.");
-                        csvcontent.AppendLine("Average Roughness (RA): "+RA+" mm.");
-                        csvcontent.AppendLine("Root mean square Roughness (RQ): "+RQ+" mm.");
-                        csvcontent.AppendLine("Count of measurements inside the filter input: "+NonOutliers+".");
-                        csvcontent.AppendLine("Count of measurements outside filter input: "+Outliers+".");
-                        csvcontent.AppendLine("");
+                    else
+                    {
+                        csvcontent.AppendLine(Tests[i].test_uid + "," + Tests[i].sTime + "," + Tests[i].PlaneID + "," + Tests[i].Operator + "," + MinHeight.height + " mm," + MinHeight.x + "," + MinHeight.y + "," + MaxHeight.height + " mm," + MaxHeight.x + "," + MaxHeight.y + "," + MeanHeight + " mm," + HeightRange + " mm," + RA + " mm," + RQ + " mm," + NonOutliers + "," + Outliers);
                     }
+
                     DataFull.Clear();
                     DataLimited.Clear();
-                    Outliers = 0;
-                    NonOutliers = 0;
-               
+
                 }
                 con.Close();
-                File.AppendAllText(csvpath, csvcontent.ToString());
-        
+                File.WriteAllText(csvpath, csvcontent.ToString());
+                Console.WriteLine("The Summary has been saved to " + System.IO.Path.GetDirectoryName(DatabaseLoc));
+                Console.WriteLine("Press any key to exit.");
+                Console.ReadKey();
+
             }
-            catch {
+            catch
+            {
                 Console.WriteLine("No database file found in this location. Please include the name of the Database in the address.");
-                
+                Console.WriteLine("Press Any Key to exit");
+                Console.ReadKey();
+
             }
         }
     }
